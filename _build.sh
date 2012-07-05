@@ -105,10 +105,16 @@ echo "----- Making uncompressed $IMAGE_NAME ramdisk ------"
 echo "----- Making $IMAGE_NAME ramdisk ------"
 ./release-tools/minigzip < $BIN_DIR/ramdisk-$IMAGE_NAME.cpio > $BIN_DIR/ramdisk-$IMAGE_NAME.img
 echo "----- Making $IMAGE_NAME image ------"
-./release-tools/mkbootimg  --kernel $BIN_DIR/kernel  --ramdisk $BIN_DIR/ramdisk-$IMAGE_NAME.img --base 0x80000000 --output $BIN_DIR/$IMAGE_NAME.img
+./release-tools/mkbootimg --cmdline "console=null androidboot.hardware=qcom user_debug=31" --kernel $BIN_DIR/kernel  --ramdisk $BIN_DIR/ramdisk-$IMAGE_NAME.img --base 0x80200000 --ramdiskaddr 0x81500000 --output $BIN_DIR/$IMAGE_NAME.img
+
+# create odin image
+cd $BIN_DIR
+tar cf $BUILD_LOCALVERSION-odin.tar $IMAGE_NAME.img
+md5sum -t $BUILD_LOCALVERSION-odin.tar >> $BUILD_LOCALVERSION-odin.tar
+mv $BUILD_LOCALVERSION-odin.tar $BUILD_LOCALVERSION-odin.tar.md5
+echo "  $BIN_DIR/$BUILD_LOCALVERSION-odin.tar.md5"
 
 # create cwm image
-cd $BIN_DIR
 if [ -d tmp ]; then
   rm -rf tmp
 fi
