@@ -1,0 +1,6 @@
+HOW TO BUILD KERNEL
+
+  Execute build script
+    for boot.img 'build-boot.sh'
+    for recovery.img 'build-recovery.sh'
+
