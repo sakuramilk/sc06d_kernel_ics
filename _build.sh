@@ -109,10 +109,10 @@ echo "----- Making $IMAGE_NAME image ------"
 
 # create odin image
 cd $BIN_DIR
-tar cf $BUILD_LOCALVERSION-odin.tar $IMAGE_NAME.img
-md5sum -t $BUILD_LOCALVERSION-odin.tar >> $BUILD_LOCALVERSION-odin.tar
-mv $BUILD_LOCALVERSION-odin.tar $BUILD_LOCALVERSION-odin.tar.md5
-echo "  $BIN_DIR/$BUILD_LOCALVERSION-odin.tar.md5"
+tar cf $BUILD_LOCALVERSION-$IMAGE_NAME-odin.tar $IMAGE_NAME.img
+md5sum -t $BUILD_LOCALVERSION-$IMAGE_NAME-odin.tar >> $BUILD_LOCALVERSION-$IMAGE_NAME-odin.tar
+mv $BUILD_LOCALVERSION-$IMAGE_NAME-odin.tar $BUILD_LOCALVERSION-$IMAGE_NAME-odin.tar.md5
+echo "  $BIN_DIR/$BUILD_LOCALVERSION-$IMAGE_NAME-odin.tar.md5"
 
 # create cwm image
 if [ -d tmp ]; then
