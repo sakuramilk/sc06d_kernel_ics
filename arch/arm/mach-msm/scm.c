@@ -176,7 +176,7 @@ static u32 smc(u32 cmd_addr)
 			__asmeq("%1", "r0")
 			__asmeq("%2", "r1")
 			__asmeq("%3", "r2")
-#ifdef HAVE_ARCH_EXTENTSION
+#if __GNUC_MINOR__ > 4
 			".arch_extension sec\n"
 #endif
 			"smc	#0	@ switch to secure world\n"
@@ -300,7 +300,7 @@ s32 scm_call_atomic1(u32 svc, u32 cmd, u32 arg1)
 		__asmeq("%1", "r0")
 		__asmeq("%2", "r1")
 		__asmeq("%3", "r2")
-#ifdef HAVE_ARCH_EXTENTSION
+#if __GNUC_MINOR__ > 4
 		".arch_extension sec\n"
 #endif
 		"smc	#0	@ switch to secure world\n"
@@ -335,7 +335,7 @@ s32 scm_call_atomic2(u32 svc, u32 cmd, u32 arg1, u32 arg2)
 		__asmeq("%2", "r1")
 		__asmeq("%3", "r2")
 		__asmeq("%4", "r3")
-#ifdef HAVE_ARCH_EXTENTSION
+#if __GNUC_MINOR__ > 4
 		".arch_extension sec\n"
 #endif
 		"smc	#0	@ switch to secure world\n"
@@ -365,7 +365,7 @@ s32 scm_call_atomic4_3(u32 svc, u32 cmd, u32 arg1, u32 arg2,
 		__asmeq("%4", "r1")
 		__asmeq("%5", "r2")
 		__asmeq("%6", "r3")
-#ifdef HAVE_ARCH_EXTENTSION
+#if __GNUC_MINOR__ > 4
 		".arch_extension sec\n"
 #endif
 		"smc	#0	@ switch to secure world\n"
@@ -400,7 +400,7 @@ u32 scm_get_version(void)
 			__asmeq("%1", "r1")
 			__asmeq("%2", "r0")
 			__asmeq("%3", "r1")
-#ifdef HAVE_ARCH_EXTENTSION
+#if __GNUC_MINOR__ > 4
 			".arch_extension sec\n"
 #endif
 			"smc	#0	@ switch to secure world\n"

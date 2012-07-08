@@ -46,4 +46,3 @@ export BUILD_CROSS_COMPILE=`check_and_get_linaro arm-linux-gnueabihf 2012.05 201
 
 # export compiler option
 export HAVE_NO_UNALIGNED_ACCESS=y
-export HAVE_ARCH_EXTENTSION=y

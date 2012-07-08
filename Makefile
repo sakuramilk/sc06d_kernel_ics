@@ -576,11 +576,6 @@ else
 KBUILD_CFLAGS	+= -O2
 endif
 
-ifeq ($(HAVE_ARCH_EXTENTSION),y)
-KBUILD_AFLAGS	+= -DHAVE_ARCH_EXTENTSION
-KBUILD_CFLAGS	+= -DHAVE_ARCH_EXTENTSION
-endif
-
 include $(srctree)/arch/$(SRCARCH)/Makefile
 
 ifneq ($(CONFIG_FRAME_WARN),0)
