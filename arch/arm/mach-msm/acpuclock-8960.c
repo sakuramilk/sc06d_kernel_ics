@@ -70,6 +70,8 @@
 
 #define STBY_KHZ		1
 
+#define MAX_VDD_SC		1250000 /* uV */
+#define MIN_VDD_SC		 800000 /* uV */
 #define HFPLL_NOMINAL_VDD	1050000
 #define HFPLL_LOW_VDD		 850000
 #define HFPLL_LOW_VDD_PLL_L_MAX	0x28
@@ -1364,6 +1366,49 @@ out:
 		mutex_unlock(&driver_lock);
 	return rc;
 }
+
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+
+ssize_t acpuclk_get_vdd_levels_str(char *buf) {
+
+	int i, len = 0;
+
+	if (buf) {
+		mutex_lock(&driver_lock);
+
+		for (i = 0; acpu_freq_tbl[i].speed.khz; i++) {
+			len += sprintf(buf + len, "%8u: %8d\n", acpu_freq_tbl[i].speed.khz, acpu_freq_tbl[i].vdd_core );
+		}
+
+		mutex_unlock(&driver_lock);
+
+		}
+	return len;
+}
+
+void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
+
+	int i;
+	unsigned int new_vdd_uv;
+	struct scalable *sc;
+
+		mutex_lock(&driver_lock);
+
+	for (i = 0; acpu_freq_tbl[i].speed.khz; i++) {
+		if (khz == 0)
+			new_vdd_uv = min(max((acpu_freq_tbl[i].vdd_core + vdd_uv), (unsigned int)MIN_VDD_SC), (unsigned int)MAX_VDD_SC);
+		else if ( acpu_freq_tbl[i].speed.khz == khz)
+			new_vdd_uv = min(max((unsigned int)vdd_uv, (unsigned int)MIN_VDD_SC), (unsigned int)MAX_VDD_SC);
+		else 
+			continue;
+
+		acpu_freq_tbl[i].vdd_core = new_vdd_uv;
+	}
+
+	mutex_unlock(&driver_lock);
+}
+
+#endif	
 
 /* Initialize a HFPLL at a given rate and enable it. */
 static void __init hfpll_init(struct scalable *sc, struct core_speed *tgt_s)
