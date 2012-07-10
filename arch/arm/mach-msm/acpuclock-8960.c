@@ -399,8 +399,13 @@ static uint32_t bus_perf_client;
 #define L2(x) (&l2_freq_tbl_8960_kraitv1[(x)])
 static struct l2_level l2_freq_tbl_8960_kraitv1[] = {
 	[0]  = { {STBY_KHZ, QSB,   0, 0, 0x00 }, 1050000, 1050000, 0 },
+#ifdef CONFIG_MSM_USE_UNDERCLOCK
 	[1]  = { {  192000, PLL_8, 0, 2, 0x00 }, 1050000, 1050000, 1 },
 	[2]  = { {  384000, HFPLL, 2, 0, 0x20 }, 1050000, 1050000, 1 },
+#else
+	[1]  = { {  384000, PLL_8, 0, 2, 0x00 }, 1050000, 1050000, 1 },
+	[2]  = { {  432000, HFPLL, 2, 0, 0x20 }, 1050000, 1050000, 1 },
+#endif
 	[3]  = { {  486000, HFPLL, 2, 0, 0x24 }, 1050000, 1050000, 1 },
 	[4]  = { {  540000, HFPLL, 2, 0, 0x28 }, 1050000, 1050000, 1 },
 	[5]  = { {  594000, HFPLL, 1, 0, 0x16 }, 1050000, 1050000, 2 },
@@ -414,8 +419,13 @@ static struct l2_level l2_freq_tbl_8960_kraitv1[] = {
 
 static struct acpu_level acpu_freq_tbl_8960_kraitv1_slow[] = {
 	{ 0, {STBY_KHZ, QSB,   0, 0, 0x00 }, L2(0),   900000 },
+#ifdef CONFIG_MSM_USE_UNDERCLOCK
 	{ 1, {  192000, PLL_8, 0, 2, 0x00 }, L2(1),   900000 },
 	{ 1, {  384000, HFPLL, 2, 0, 0x20 }, L2(6),   925000 },
+#else
+	{ 1, {  384000, PLL_8, 0, 2, 0x00 }, L2(1),   900000 },
+	{ 1, {  432000, HFPLL, 2, 0, 0x20 }, L2(6),   925000 },
+#endif
 	{ 1, {  486000, HFPLL, 2, 0, 0x24 }, L2(6),   925000 },
 	{ 1, {  540000, HFPLL, 2, 0, 0x28 }, L2(6),   937500 },
 	{ 1, {  594000, HFPLL, 1, 0, 0x16 }, L2(6),   962500 },
@@ -430,8 +440,13 @@ static struct acpu_level acpu_freq_tbl_8960_kraitv1_slow[] = {
 
 static struct acpu_level acpu_freq_tbl_8960_kraitv1_nom_fast[] = {
 	{ 0, {STBY_KHZ, QSB,   0, 0, 0x00 }, L2(0),   862500 },
+#ifdef CONFIG_MSM_USE_UNDERCLOCK
 	{ 1, {  192000, PLL_8, 0, 2, 0x00 }, L2(1),   862500 },
 	{ 1, {  384000, HFPLL, 2, 0, 0x20 }, L2(6),   862500 },
+#else
+	{ 1, {  384000, PLL_8, 0, 2, 0x00 }, L2(1),   862500 },
+	{ 1, {  432000, HFPLL, 2, 0, 0x20 }, L2(6),   862500 },
+#endif
 	{ 1, {  486000, HFPLL, 2, 0, 0x24 }, L2(6),   887500 },
 	{ 1, {  540000, HFPLL, 2, 0, 0x28 }, L2(6),   900000 },
 	{ 1, {  594000, HFPLL, 1, 0, 0x16 }, L2(6),   925000 },
@@ -672,8 +687,13 @@ static struct acpu_level acpu_freq_tbl_8960_kraitv2_fast[] = {
 
 static struct l2_level l2_freq_tbl_8960_kraitv2[] = {
 	[0]  = { {STBY_KHZ, QSB,   0, 0, 0x00 }, 1050000, 1050000, 0 },
+#ifdef CONFIG_MSM_USE_UNDERCLOCK
 	[1]  = { {  192000, PLL_8, 0, 2, 0x00 }, 1050000, 1050000, 1 },
 	[2]  = { {  384000, HFPLL, 2, 0, 0x20 }, 1050000, 1050000, 2 },
+#else
+	[1]  = { {  384000, PLL_8, 0, 2, 0x00 }, 1050000, 1050000, 1 },
+	[2]  = { {  432000, HFPLL, 2, 0, 0x20 }, 1050000, 1050000, 2 },
+#endif
 	[3]  = { {  486000, HFPLL, 2, 0, 0x24 }, 1050000, 1050000, 2 },
 	[4]  = { {  540000, HFPLL, 2, 0, 0x28 }, 1050000, 1050000, 2 },
 	[5]  = { {  594000, HFPLL, 1, 0, 0x16 }, 1050000, 1050000, 2 },
@@ -695,8 +715,13 @@ static struct l2_level l2_freq_tbl_8960_kraitv2[] = {
 
 static struct acpu_level acpu_freq_tbl_8960_kraitv2_slow[] = {
 	{ 0, { STBY_KHZ, QSB,   0, 0, 0x00 }, L2(0),   950000 },
+#ifdef CONFIG_MSM_USE_UNDERCLOCK
 	{ 1, {   192000, PLL_8, 0, 2, 0x00 }, L2(1),   950000 },
 	{ 1, {   384000, HFPLL, 2, 0, 0x20 }, L2(7),   975000 },
+#else
+	{ 1, {   384000, PLL_8, 0, 2, 0x00 }, L2(1),   950000 },
+	{ 0, {   432000, HFPLL, 2, 0, 0x20 }, L2(7),   975000 },
+#endif
 	{ 1, {   486000, HFPLL, 2, 0, 0x24 }, L2(7),   975000 },
 	{ 0, {   540000, HFPLL, 2, 0, 0x28 }, L2(7),  1000000 },
 	{ 1, {   594000, HFPLL, 1, 0, 0x16 }, L2(7),  1000000 },
@@ -722,8 +747,13 @@ static struct acpu_level acpu_freq_tbl_8960_kraitv2_slow[] = {
 
 static struct acpu_level acpu_freq_tbl_8960_kraitv2_nom[] = {
 	{ 0, { STBY_KHZ, QSB,   0, 0, 0x00 }, L2(0),   900000 },
+#ifdef CONFIG_MSM_USE_UNDERCLOCK
 	{ 1, {   192000, PLL_8, 0, 2, 0x00 }, L2(1),   900000 },
 	{ 1, {   384000, HFPLL, 2, 0, 0x20 }, L2(7),   925000 },
+#else
+	{ 1, {   384000, PLL_8, 0, 2, 0x00 }, L2(1),   900000 },
+	{ 0, {   432000, HFPLL, 2, 0, 0x20 }, L2(7),   925000 },
+#endif
 	{ 1, {   486000, HFPLL, 2, 0, 0x24 }, L2(7),   925000 },
 	{ 0, {   540000, HFPLL, 2, 0, 0x28 }, L2(7),   950000 },
 	{ 1, {   594000, HFPLL, 1, 0, 0x16 }, L2(7),   950000 },
@@ -749,8 +779,13 @@ static struct acpu_level acpu_freq_tbl_8960_kraitv2_nom[] = {
 
 static struct acpu_level acpu_freq_tbl_8960_kraitv2_fast[] = {
 	{ 0, { STBY_KHZ, QSB,   0, 0, 0x00 }, L2(0),   850000 },
+#ifdef CONFIG_MSM_USE_UNDERCLOCK
 	{ 1, {   192000, PLL_8, 0, 2, 0x00 }, L2(1),   850000 },
 	{ 1, {   384000, HFPLL, 2, 0, 0x20 }, L2(7),   875000 },
+#else
+	{ 1, {   384000, PLL_8, 0, 2, 0x00 }, L2(1),   850000 },
+	{ 0, {   432000, HFPLL, 2, 0, 0x20 }, L2(7),   875000 },
+#endif
 	{ 1, {   486000, HFPLL, 2, 0, 0x24 }, L2(7),   875000 },
 	{ 0, {   540000, HFPLL, 2, 0, 0x28 }, L2(7),   900000 },
 	{ 1, {   594000, HFPLL, 1, 0, 0x16 }, L2(7),   900000 },
@@ -1763,3 +1798,4 @@ struct acpuclk_soc_data acpuclk_8960_soc_data __initdata = {
 struct acpuclk_soc_data acpuclk_8930_soc_data __initdata = {
 	.init = acpuclk_8960_init,
 };
+

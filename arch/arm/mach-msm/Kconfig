@@ -2258,4 +2258,8 @@ config MSM_DCVS
 	  algorithm and the algorithm returns a frequency for the core which is
 	  passed to the frequency change driver.
 
+config MSM_USE_UNDERCLOCK
+	bool "Use CPU Under Frequency"
+	default n	  
+
 endif
