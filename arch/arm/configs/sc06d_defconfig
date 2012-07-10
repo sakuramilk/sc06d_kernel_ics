@@ -1,6 +1,6 @@
 #
 # Automatically generated make config: don't edit
-# Linux/arm 3.0.8 Kernel Configuration
+# Linux/arm 3.0.36 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -379,6 +379,7 @@ CONFIG_MSM_SMD_PKT=y
 CONFIG_MSM_IPC_ROUTER=y
 CONFIG_MSM_IPC_ROUTER_SMD_XPRT=y
 # CONFIG_MSM_DALRPC is not set
+CONFIG_CPU_VOLTAGE_TABLE=y
 # CONFIG_MSM_CPU_FREQ_SET_MIN_MAX is not set
 # CONFIG_MSM_AVS_HW is not set
 # CONFIG_MSM_HW3D is not set
