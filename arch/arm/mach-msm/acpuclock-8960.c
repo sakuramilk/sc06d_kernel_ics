@@ -1390,7 +1390,6 @@ void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
 
 	int i;
 	unsigned int new_vdd_uv;
-	struct scalable *sc;
 
 		mutex_lock(&driver_lock);
 
