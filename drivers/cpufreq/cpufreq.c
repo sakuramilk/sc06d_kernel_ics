@@ -2386,7 +2386,7 @@ EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 
 static int __init cpufreq_core_init(void)
 {
-	int cpu
+	int cpu;
 #ifdef CONFIG_CPU_VOLTAGE_TABLE
 	int rc;
 #endif /* CONFIG_CPU_VOLTAGE_TABLE */
