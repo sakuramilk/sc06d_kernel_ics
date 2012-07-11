@@ -2262,4 +2262,8 @@ config MSM_USE_UNDERCLOCK
 	bool "Use CPU Under Frequency"
 	default n	  
 
+config MSM_USE_OVERCLOCK
+	bool "Use CPU Under Frequency"
+	default n
+
 endif
