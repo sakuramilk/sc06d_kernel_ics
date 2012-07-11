@@ -2263,7 +2263,7 @@ config MSM_USE_UNDERCLOCK
 	default n	  
 
 config MSM_USE_OVERCLOCK
-	bool "Use CPU Under Frequency"
+	bool "Use CPU Over Frequency"
 	default n
 
 endif
