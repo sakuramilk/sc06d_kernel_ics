@@ -2,7 +2,7 @@
 # set kernel version
 ###########################################################
 TARGET_DEVICE=SC06D-ICS
-BUILD_MOD=SKRMLK
+BUILD_MOD=KBC
 BUILD_VERSION=V1.1.0
 
 
