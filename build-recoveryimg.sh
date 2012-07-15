@@ -10,7 +10,9 @@ INITRAMFS_SRC_DIR=../sc06d_recovery_ramdisk
 INITRAMFS_TMP_DIR=/tmp/sc06d_recovery_ramdisk
 IMAGE_NAME=recovery
 
-BUILD_LOCALVERSION=SC06D-ICS-SKRMLK-CWM-V5.5.0.4_r0
+# generate LOCALVERSION
+. mod_version
+BUILD_LOCALVERSION=$BUILD_RECOVERYVERSION
 
 
 echo "=====> copy initramfs"

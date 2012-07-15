@@ -4,6 +4,7 @@
 TARGET_DEVICE=SC06D-ICS
 BUILD_MOD=KBC
 BUILD_VERSION=V1.1.0
+BUILD_RECOVERY_VER=CWM-V5.5.0.4_r1
 
 
 ###########################################################
@@ -14,7 +15,6 @@ export KBUILD_BUILD_USER="HomuHomu,Kyapa,Sakuramilk"
 export KBUILD_BUILD_HOST="KBC"
 
 
-
 ###########################################################
 # don't edit
 ###########################################################
@@ -23,6 +23,7 @@ if [ ! "$RELEASE_BUILD" = 'y' ]; then
   BUILD_VERSION=`date +%Y%m%d`
 fi
 export BUILD_LOCALVERSION="$TARGET_DEVICE-$BUILD_MOD-$BUILD_VERSION"
+export BUILD_RECOVERYVERSION="$TARGET_DEVICE-$BUILD_MOD-$BUILD_RECOVERY_VER"
 
 # kernel vesion
 KERNEL_VERSION=`grep '^VERSION = ' ./Makefile | cut -d' ' -f3`
