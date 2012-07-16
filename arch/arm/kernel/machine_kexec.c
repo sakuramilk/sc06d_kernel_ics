@@ -12,6 +12,7 @@
 #include <asm/mmu_context.h>
 #include <asm/cacheflush.h>
 #include <asm/mach-types.h>
+#include <asm/mmu_writeable.h>
 
 extern const unsigned char relocate_new_kernel[];
 extern const unsigned int relocate_new_kernel_size;
@@ -22,6 +23,11 @@ extern unsigned long kexec_start_address;
 extern unsigned long kexec_indirection_page;
 extern unsigned long kexec_mach_type;
 extern unsigned long kexec_boot_atags;
+
+#ifdef CONFIG_KEXEC_HARDBOOT
+extern unsigned long kexec_hardboot;
+void (*kexec_hardboot_hook)(void);
+#endif
 
 static atomic_t waiting_for_crash_ipi;
 
@@ -96,10 +102,13 @@ void machine_kexec(struct kimage *image)
 	reboot_code_buffer = page_address(image->control_code_page);
 
 	/* Prepare parameters for reboot_code_buffer*/
-	kexec_start_address = image->start;
-	kexec_indirection_page = page_list;
-	kexec_mach_type = machine_arch_type;
-	kexec_boot_atags = image->start - KEXEC_ARM_ZIMAGE_OFFSET + KEXEC_ARM_ATAGS_OFFSET;
+	mem_text_write_kernel_word(&kexec_start_address, image->start);
+	mem_text_write_kernel_word(&kexec_indirection_page, page_list);
+	mem_text_write_kernel_word(&kexec_mach_type, machine_arch_type);
+	mem_text_write_kernel_word(&kexec_boot_atags, image->start - KEXEC_ARM_ZIMAGE_OFFSET + KEXEC_ARM_ATAGS_OFFSET);
+#ifdef CONFIG_KEXEC_HARDBOOT
+	mem_text_write_kernel_word(&kexec_hardboot, image->hardboot);
+#endif
 
 	/* copy our kernel relocation code to the control code page */
 	memcpy(reboot_code_buffer,
@@ -115,6 +124,13 @@ void machine_kexec(struct kimage *image)
 	local_irq_disable();
 	local_fiq_disable();
 	setup_mm_for_reboot(0); /* mode is not used, so just pass 0*/
+
+#ifdef CONFIG_KEXEC_HARDBOOT
+	if (image->hardboot && kexec_hardboot_hook)
+		/* Run any final machine-specific shutdown code. */
+		kexec_hardboot_hook();
+#endif
+
 	flush_cache_all();
 	outer_flush_all();
 	outer_disable();
