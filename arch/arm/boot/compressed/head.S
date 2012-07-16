@@ -11,6 +11,10 @@
 #include <linux/linkage.h>
 #include <asm/memory.h>
 
+#ifdef CONFIG_KEXEC_HARDBOOT
+#include <asm/kexec.h>
+#endif
+
 /*
  * Debugging stuff
  *
@@ -142,7 +146,31 @@ start:
 		.word	_edata			@ zImage end address
  THUMB(		.thumb			)
 1:		mov	r7, r1			@ save architecture ID
-		mov	r8, r2			@ save atags pointer
+		teq	r0, #0			@ Check for kexec_boot_atags.
+		movne	r8, r0			@ Save kexec_boot_tags.
+		moveq	r8, r2			@ save atags pointer
+
+#ifdef CONFIG_KEXEC_HARDBOOT
+		/* Check hardboot page for a kexec kernel. */
+		ldr	r3, =KEXEC_HB_PAGE_ADDR
+		ldr	r0, [r3]
+		ldr	r1, =KEXEC_HB_PAGE_MAGIC
+		teq	r0, r1
+		bne	not_booting_other
+
+		/* Clear hardboot page magic to avoid boot loop. */
+		mov	r0, #0
+		str	r0, [r3]
+
+		/* Load boot arguments and jump to kexec kernel. */
+		ldr	r0, [r3, #12]	@ kexec_boot_atags (r2: boot_atags)
+		ldr	r1, [r3, #8]	@ kexec_mach_type
+		ldr	pc, [r3, #4]	@ kexec_start_address
+
+		.ltorg
+
+not_booting_other:
+#endif
 
 #ifndef __ARM_ARCH_2__
 		/*
@@ -464,12 +492,49 @@ not_relocated:	mov	r0, #0
 		add	r2, sp, #0x10000	@ 64k max
 		mov	r3, r7
 		bl	decompress_kernel
+
+/* Copy the kernel tagged list (atags):
+ *
+ * The kernel requires atags to be located in a direct-mapped region,
+ * usually below the kernel in the first 16 kB of RAM.  If they're above
+ * (the start of) the kernel, they need to be copied to a suitable
+ * location, e.g., the machine-defined params_phys.
+ *
+ * Still need to make sure that the copied tags don't overwrite either the
+ * kernel or decompressor code (or rather, the remainder of it since
+ * everything up to here has already been executed).
+ *
+ * r4: zreladdr (kernel start)
+ * r8: atags */
+
+		/* Don't need to copy atags if they're already below the kernel. */
+		cmp	r8, r4
+		blo	call_kernel
+
+		/* r1: min(zreladdr, pc) */
+		mov	r1, pc
+		cmp	r4, r1
+		movlo	r1, r4
+
+		/* Compute max space for atags, if max <= 0 don't copy. */
+		ldr	r0, =params_phys	@ dest
+		subs	r2, r1, r0		@ max = min(zreladdr, pc) - dest
+		bls	call_kernel
+
+		/* Copy atags to params_phys. */
+		mov	r1, r8			@ src
+		bl	copy_atags
+		mov	r8, r0
+
+call_kernel:
 		bl	cache_clean_flush
 		bl	cache_off
 		mov	r0, #0			@ must be zero
 		mov	r1, r7			@ restore architecture number
 		mov	r2, r8			@ restore atags pointer
 		mov	pc, r4			@ call kernel
+
+		.ltorg
 
 		.align	2
 		.type	LC0, #object
