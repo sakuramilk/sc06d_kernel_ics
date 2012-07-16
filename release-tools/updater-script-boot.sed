@@ -4,6 +4,7 @@ ui_print("------------------------------------------------");
 ui_print("@VERSION");
 ui_print("  KBC Developers:");
 ui_print("    Akemi Homura");
+ui_print("    Kyapa");
 ui_print("    Sakuramilk");
 ui_print("------------------------------------------------");
 ui_print("");
