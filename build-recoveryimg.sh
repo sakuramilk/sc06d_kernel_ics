@@ -6,6 +6,10 @@ KERNEL_DIR=$PWD
 BIN_DIR=out/bin
 OBJ_DIR=out/obj
 
+if [ ! -d $BIN_DIR ]; then
+  mkdir -p $BIN_DIR  
+fi
+
 INITRAMFS_SRC_DIR=../sc06d_recovery_ramdisk
 INITRAMFS_TMP_DIR=/tmp/sc06d_recovery_ramdisk
 IMAGE_NAME=recovery
