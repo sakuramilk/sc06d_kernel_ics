@@ -12,7 +12,19 @@ cpoy_initramfs()
   find $INITRAMFS_TMP_DIR -name .gitignore | xargs rm
 }
 
-BUILD_DEFCONFIG=sc06d_defconfig
+if [ ! -n "$1" ]; then
+  echo ""
+  read -p "select ramdisk? [(s)amsung/(a)osp default:samsung] " BUILD_RAMDISK
+else
+  BUILD_RADISK=$1
+fi
+
+if [ "$BUILD_RADISK" = 'samsung' -o "$BUILD_SELECT" = 's' ]; then
+  BUILD_DEFCONFIG=sc06d_defconfig
+else
+  BUILD_DEFCONFIG=aosp_sc06d_defconfig
+fi
+
 BIN_DIR=out/bin
 OBJ_DIR=out/obj
 
@@ -32,18 +44,18 @@ export LOCALVERSION="-$BUILD_LOCALVERSION"
 
 echo "=====> BUILD START $BUILD_KERNELVERSION-$BUILD_LOCALVERSION"
 
-if [ ! -n "$1" ]; then
+if [ ! -n "$2" ]; then
   echo ""
   read -p "select build? [(b)oot/(r)ecovery default:boot] " BUILD_TARGET
 else
-  BUILD_TARGET=$1
+  BUILD_TARGET=$2
 fi
 
-if [ ! -n "$2" ]; then
+if [ ! -n "$3" ]; then
   echo ""
   read -p "select build? [(a)ll/(u)pdate/(i)mage default:update] " BUILD_SELECT
 else
-  BUILD_SELECT=$2
+  BUILD_SELECT=$3
 fi
 
 # copy initramfs
