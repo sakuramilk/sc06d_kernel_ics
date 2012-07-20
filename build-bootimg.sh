@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./_build.sh boot $1
+./_build.sh samsung boot $1
