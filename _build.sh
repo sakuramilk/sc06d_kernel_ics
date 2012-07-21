@@ -19,7 +19,7 @@ else
   BUILD_RADISK=$1
 fi
 
-if [ "$BUILD_RADISK" = 'samsung' -o "$BUILD_SELECT" = 's' ]; then
+if [ "$BUILD_RADISK" = 'samsung' -o "$BUILD_RADISK" = 's' ]; then
   BUILD_DEFCONFIG=sc06d_defconfig
 else
   BUILD_DEFCONFIG=aosp_sc06d_defconfig
