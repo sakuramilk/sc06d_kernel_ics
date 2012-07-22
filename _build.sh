@@ -19,15 +19,16 @@ else
   BUILD_RADISK=$1
 fi
 
-if [ "$BUILD_RADISK" = 'samsung' -o "$BUILD_RADISK" = 's' ]; then
-  BUILD_DEFCONFIG=sc06d_defconfig
-else
-  BUILD_DEFCONFIG=aosp_sc06d_defconfig
-fi
-
-BIN_DIR=out/bin
-OBJ_DIR=out/obj
-
+# check target
+BUILD_TARGET=$1
+case "$BUILD_TARGET" in
+  "AOSP" ) BUILD_DEFCONFIG=sc06d_aosp_defconfig ;;
+  "SAM" ) BUILD_DEFCONFIG=sc06d_samsung_defconfig ;;
+  "MULTI" ) BUILD_DEFCONFIG=sc06d_multi_defconfig ;;
+  * ) echo "error: not found BUILD_TARGET" && exit -1 ;;
+esac
+BIN_DIR=out/$BUILD_TARGET/bin
+OBJ_DIR=out/$BUILD_TARGET/obj
 mkdir -p $BIN_DIR
 mkdir -p $OBJ_DIR
 
