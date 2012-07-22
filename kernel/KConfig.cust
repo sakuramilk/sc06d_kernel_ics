@@ -1,0 +1,33 @@
+#
+# Kernel Custom Configuration
+#
+
+choice
+	prompt "Build target"
+	default BUILD_TARGET_SAMSUNG
+	help
+	   This option select a build target.
+
+config BUILD_TARGET_SAMSUNG
+	bool "Samsung"
+	help
+	 This option makes to select build target Samsung ROM.
+
+config BUILD_TARGET_AOSP
+	bool "AOSP"
+        select FEATURE_AOSP
+	help
+	 This option makes to select build target AOSP ROM.
+
+config BUILD_TARGET_MULTI
+	bool "Multi"
+        select FEATURE_AOSP
+	help
+	 This option makes to select build target Multi ROM.
+endchoice
+
+config FEATURE_AOSP
+	bool "Enable AOSP feature support"
+	help
+	 This option enable AOSP freature support.
+

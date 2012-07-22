@@ -1,6 +1,6 @@
 #
 # Automatically generated make config: don't edit
-# Linux/arm 3.0.36 Kernel Configuration
+# Linux/arm 3.0.37 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -3417,3 +3417,7 @@ CONFIG_HAS_DMA=y
 CONFIG_CPU_RMAP=y
 CONFIG_NLATTR=y
 # CONFIG_AVERAGE is not set
+CONFIG_BUILD_TARGET_SAMSUNG=y
+# CONFIG_BUILD_TARGET_AOSP is not set
+# CONFIG_BUILD_TARGET_MULTI is not set
+# CONFIG_FEATURE_AOSP is not set

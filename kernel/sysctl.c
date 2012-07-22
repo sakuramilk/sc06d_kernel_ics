@@ -227,6 +227,16 @@ extern struct ctl_table epoll_table[];
 int sysctl_legacy_va_layout;
 #endif
 
+#if defined(CONFIG_BUILD_TARGET_SAMSUNG)
+int sysctl_build_target = 0;
+#elif defined(CONFIG_BUILD_TARGET_AOSP)
+int sysctl_build_target = 1;
+#elif defined(CONFIG_BUILD_TARGET_MULTI)
+int sysctl_build_target = 2;
+#endif
+int sysctl_safe_mode = 0;
+int sysctl_boot_completed = 0;
+
 /* The default sysctl tables: */
 
 static struct ctl_table root_table[] = {
@@ -992,8 +1002,29 @@ static struct ctl_table kern_table[] = {
 		.maxlen		= sizeof(int),
 		.mode		= 0444,
 		.proc_handler	= proc_dointvec,
-},
+	},
 #endif
+	{
+		.procname	= "build_target",
+		.data		= &sysctl_build_target,
+		.maxlen		= sizeof(int),
+		.mode		= 0444,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "safe_mode",
+		.data		= &sysctl_safe_mode,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "boot_completed",
+		.data		= &sysctl_boot_completed,
+		.maxlen		= sizeof(int),
+		.mode		= 0666,
+		.proc_handler	= proc_dointvec,
+	},
 /*
  * NOTE: do not add new entries to this table unless you have read
  * Documentation/sysctl/ctl_unnumbered.txt
