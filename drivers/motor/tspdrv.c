@@ -116,6 +116,49 @@ static int vibrator_work;
 
 struct vibrator_platform_data vibrator_drvdata;
 
+#ifdef CONFIG_TGS3_VIB_CTRL
+/* define */
+#define VIB_CTRL_LEVEL_DEFAULT	9
+#define VIB_CTRL_DUTY_DEFAULT	120
+static const int8_t vib_ctrl_duty_levels[] = { 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 126 };
+static int vib_ctrl_level = VIB_CTRL_LEVEL_DEFAULT;
+static int8_t vib_ctrl_duty = VIB_CTRL_DUTY_DEFAULT;
+/* sysfs */
+static ssize_t show_vib_ctrl_level_max(struct device *dev,
+				      struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf,"%d\n", (ARRAY_SIZE(vib_ctrl_duty_levels) - 1));
+}
+
+static ssize_t show_vib_ctrl_level(struct device *dev,
+				      struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf,"%d\n", vib_ctrl_level);
+}
+
+static ssize_t store_vib_ctrl_level(struct device *dev,
+				       struct device_attribute *attr,
+				       const char *buf, size_t len)
+{
+	int data = 0;
+	if (sscanf(buf, "%u\n", &data) > 0) {
+		if (data >= ARRAY_SIZE(vib_ctrl_duty_levels))
+			data = ARRAY_SIZE(vib_ctrl_duty_levels) - 1;
+		else if (data < 0)
+			data = 0;
+		vib_ctrl_level = data;
+		vib_ctrl_duty = vib_ctrl_duty_levels[vib_ctrl_level];
+
+	} else {
+		printk(KERN_ERR "tspdrv: invalid vibrator level\n");
+	}
+	return len;
+}
+
+static DEVICE_ATTR(vib_ctrl_level_max, S_IRUGO | S_IWUGO, show_vib_ctrl_level_max, NULL);
+static DEVICE_ATTR(vib_ctrl_level, S_IRUGO | S_IWUGO, show_vib_ctrl_level, store_vib_ctrl_level);
+#endif /* CONFIG_TGS3_VIB_CTRL */
+
 static int set_vibetonz(int timeout)
 {
 	int8_t strength;
@@ -129,7 +172,7 @@ static int set_vibetonz(int timeout)
 	} else {
 		DbgOut((KERN_INFO "tspdrv: ENABLE\n"));
 		if (vibrator_drvdata.vib_model == HAPTIC_PWM) {
-			strength = 120;
+			strength = vib_ctrl_duty;//120
 			/* 90% duty cycle */
 			ImmVibeSPI_ForceOut_SetSamples(0, 8, 1, &strength);
 		} else { /* HAPTIC_MOTOR */
@@ -420,6 +463,15 @@ defined(CONFIG_MACH_GOGH) || defined(CONFIG_MACH_ESPRESSO_ATT)
 		g_samples_buffer[i].actuator_samples[1].nbuffer_size = 0;
 	}
 	wake_lock_init(&vib_wake_lock, WAKE_LOCK_SUSPEND, "vib_present");
+
+#ifdef CONFIG_TGS3_VIB_CTRL
+	if (device_create_file(&pdev->dev, &dev_attr_vib_ctrl_level_max) < 0) {
+		printk(KERN_ERR "Failed to create device file(%s)!\n", dev_attr_vib_ctrl_level_max.attr.name);
+	}
+	if (device_create_file(&pdev->dev, &dev_attr_vib_ctrl_level) < 0) {
+		printk(KERN_ERR "Failed to create device file(%s)!\n", dev_attr_vib_ctrl_level.attr.name);
+	}
+#endif /* CONFIG_TGS3_VIB_CTRL */
 
 	vibetonz_start();
 

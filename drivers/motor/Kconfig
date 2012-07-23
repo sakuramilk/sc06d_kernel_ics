@@ -6,3 +6,9 @@ menuconfig VIBETONZ
         default n
         help
           Say Y to enable Vibetonz support.
+
+config TGS3_VIB_CTRL
+	bool "Enable TweakGS3 vib control"
+	default y
+	help
+	 This option enables TweakGS3 vib control.
