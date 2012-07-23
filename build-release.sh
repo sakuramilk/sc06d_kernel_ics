@@ -14,7 +14,8 @@ if [ ! -n "`git status | grep clean`" ]; then
   echo "error: $RAMDISK_NAME is not clean"
   exit -1
 fi
-#git checkout ics
+RAMDISK_DIR=$PWD
+
 cd $KERNEL_DIR
 
 read -p "select build type? [(r)elease/(n)ightly] " BUILD_TYPE
@@ -26,13 +27,30 @@ fi
 
 # create release dir＿
 RELEASE_DIR=../release/`date +%Y%m%d`
-mkdir -p $RELEASE_DIR
+if [ ! -d $RELEASE_DIR ];
+  mkdir -p $RELEASE_DIR
+fi
 
-# build for boot.img
-bash ./build-bootimg.sh a $1
+# build for samsung boot.img
+cd $RAMDISK_DIR
+git checkout samsung-ics
+cd $KERNEL_DIR
+bash ./build-bootimg-samsung.sh a $1
 if [ $? != 0 ]; then
-  echo 'error: boot.img build fail'
+  echo 'error: samsung boot.img build fail'
   exit -1
 fi
-mkdir $RELEASE_DIR
-cp -v ./out/bin/* $RELEASE_DIR/
+cp -v ./out/SAM/bin/SC06D* $RELEASE_DIR/
+
+
+# build for aosp boot.img
+cd $RAMDISK_DIR
+git checkout cm-ics
+cd $KERNEL_DIR
+bash ./build-bootimg-aosp.sh a $1
+if [ $? != 0 ]; then
+  echo 'error: aosp boot.img build fail'
+  exit -1
+fi
+cp -v ./out/AOSP/bin/SC06D* $RELEASE_DIR/
+
