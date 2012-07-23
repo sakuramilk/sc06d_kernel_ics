@@ -851,4 +851,10 @@ config FB_MSM_DEFAULT_DEPTH_RGBA8888
 
 endchoice
 
+config TGS3_MDNIE_CTRL
+	bool "Enable TweakGS3 mDNIe control"
+	default y
+	help
+	 This option enables TweakGS3 mDNIe control.
+
 endif

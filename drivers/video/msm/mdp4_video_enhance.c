@@ -95,6 +95,15 @@ enum Lcd_mDNIe_Negative current_Negative_Mode = mDNIe_NEGATIVE_OFF;
 
 static bool g_mdine_enable ;
 
+#ifdef CONFIG_TGS3_MDNIE_CTRL
+static bool mdnie_force_disable = 0;
+static bool mdnie_ctrl_enable = 0;
+static int mdnie_ctrl_red = 0;
+static int mdnie_ctrl_blue = 0;
+static int mdnie_ctrl_green = 0;
+static int mdnie_ctrl_sharpness = 0;
+#endif /* CONFIG_TGS3_MDNIE_CTRL */
+
 #ifdef MDP4_VIDEO_ENHANCE_TUNING
 #define MAX_FILE_NAME 128
 #define TUNING_FILE_PATH "/sdcard/tuning/"
@@ -333,9 +342,30 @@ void lut_tune(int num, unsigned int *pLutTable)
 
 	j = 0;
 	for (i = 0; i < cmap->len; i++) {
+#ifdef CONFIG_TGS3_MDNIE_CTRL
+		if (mdnie_ctrl_enable && !mdnie_force_disable) {
+			int r_ctrl = (int)pLutTable[j++] + mdnie_ctrl_red;
+			int g_ctrl = (int)pLutTable[j++] + mdnie_ctrl_green;
+			int b_ctrl = (int)pLutTable[j++] + mdnie_ctrl_blue;
+                        if (r_ctrl > 255) r_ctrl = 255;
+                        else if (r_ctrl < 0) r_ctrl = 0;
+                        r_1 = r_ctrl;
+                        if (g_ctrl > 255) g_ctrl = 255;
+                        else if (g_ctrl < 0) g_ctrl = 0;
+                        g_1 = g_ctrl;
+                        if (b_ctrl > 255) b_ctrl = 255;
+                        else if (b_ctrl < 0) b_ctrl = 0;
+                        b_1 = b_ctrl;
+		} else {
+			r_1 = pLutTable[j++];
+			g_1 = pLutTable[j++];
+			b_1 = pLutTable[j++];
+		}
+#else
 		r_1 = pLutTable[j++];
 		g_1 = pLutTable[j++];
 		b_1 = pLutTable[j++];
+#endif
 
 #ifdef CONFIG_FB_MSM_MDP40
 		MDP_OUTP(MDP_BASE + 0x94800 +
@@ -370,6 +400,14 @@ fail_rest:
 void sharpness_tune(int num)
 {
 	char *vg_base;
+
+#ifdef CONFIG_TGS3_MDNIE_CTRL
+	if (mdnie_ctrl_enable && !mdnie_force_disable) {
+	        num += mdnie_ctrl_sharpness;
+	        if (num > 127) num = 127;
+	        else if (num < -127) num = -127;
+	}
+#endif
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 	vg_base = MDP_BASE + MDP4_VIDEO_BASE;
 	outpdw(vg_base + 0x8200, mdp4_ss_table_value((int8_t) num, 0));
@@ -396,7 +434,11 @@ void mDNIe_Set_Mode(enum Lcd_mDNIe_UI mode)
 	static int isSetDMBMode;
 
 	DPRINT("[mdnie set] mDNIe_Set_Mode\n");
+#ifdef CONFIG_TGS3_MDNIE_CTRL
+	if (!g_mdine_enable || mdnie_force_disable) {
+#else
 	if (!g_mdine_enable) {
+#endif
 		printk(KERN_ERR
 		       "[mDNIE WARNING] mDNIE engine is OFF. So you cannot set mDnie Mode correctly.\n");
 		return;
@@ -806,6 +848,155 @@ static ssize_t playspeed_store(struct device *dev,
 static DEVICE_ATTR(playspeed, 0664,
 			playspeed_show,
 			playspeed_store);
+
+#ifdef CONFIG_TGS3_MDNIE_CTRL
+// force_disable
+static ssize_t mdnie_force_disable_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", mdnie_force_disable);
+}
+
+static ssize_t mdnie_force_disable_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	int value;
+	sscanf(buf, "%d", &value);
+	mdnie_force_disable = value ? 1 : 0;
+
+	if (mdnie_force_disable) {
+		lut_tune(MAX_LUT_SIZE, BYPASS_LUT);
+		sharpness_tune(SHARPNESS_BYPASS);
+	} else {
+		if (current_Negative_Mode == mDNIe_NEGATIVE_ON)
+			mDNIe_set_negative(current_Negative_Mode);
+		else
+			mDNIe_Set_Mode(current_mDNIe_Mode);
+	}
+
+	return size;
+}
+
+static DEVICE_ATTR(mdnie_force_disable, 0666, mdnie_force_disable_show, mdnie_force_disable_store);
+
+// mdnie_ctrl_enable
+static ssize_t mdnie_ctrl_enable_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", mdnie_ctrl_enable);
+}
+
+static ssize_t mdnie_ctrl_enable_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	int value;
+	sscanf(buf, "%d", &value);
+	mdnie_ctrl_enable = value ? 1 : 0;
+	mDNIe_Set_Mode(current_mDNIe_Mode);
+
+	return size;
+}
+
+static DEVICE_ATTR(mdnie_ctrl_enable, 0666, mdnie_ctrl_enable_show, mdnie_ctrl_enable_store);
+
+// mdnie_ctrl_red
+static ssize_t mdnie_ctrl_red_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", mdnie_ctrl_red);
+}
+
+static ssize_t mdnie_ctrl_red_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	int value;
+	sscanf(buf, "%d", &value);
+	if (value >= -255 || value <= 255)
+		mdnie_ctrl_red = value;
+	else
+		printk(KERN_ERR "[mDNIe] invalid red value. -255 <= value <= 255\n");
+
+	mDNIe_Set_Mode(current_mDNIe_Mode);
+
+	return size;
+}
+
+static DEVICE_ATTR(mdnie_ctrl_red, 0666, mdnie_ctrl_red_show, mdnie_ctrl_red_store);
+
+// mdnie_ctrl_green
+static ssize_t mdnie_ctrl_green_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", mdnie_ctrl_green);
+}
+
+static ssize_t mdnie_ctrl_green_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	int value;
+	sscanf(buf, "%d", &value);
+	if (value >= -255 || value <= 255)
+		mdnie_ctrl_green = value;
+	else
+		printk(KERN_ERR "[mDNIe] invalid green value. -255 <= value <= 255\n");
+
+	mDNIe_Set_Mode(current_mDNIe_Mode);
+
+	return size;
+}
+
+static DEVICE_ATTR(mdnie_ctrl_green, 0666, mdnie_ctrl_green_show, mdnie_ctrl_green_store);
+
+// mdnie_ctrl_blue
+static ssize_t mdnie_ctrl_blue_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", mdnie_ctrl_blue);
+}
+
+static ssize_t mdnie_ctrl_blue_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	int value;
+	sscanf(buf, "%d", &value);
+	if (value >= -255 || value <= 255)
+		mdnie_ctrl_blue = value;
+	else
+		printk(KERN_ERR "[mDNIe] invalid blue value. -255 <= value <= 255\n");
+
+	mDNIe_Set_Mode(current_mDNIe_Mode);
+
+	return size;
+}
+
+static DEVICE_ATTR(mdnie_ctrl_blue, 0666, mdnie_ctrl_blue_show, mdnie_ctrl_blue_store);
+
+// mdnie_ctrl_blue
+static ssize_t mdnie_ctrl_sharpness_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", mdnie_ctrl_sharpness);
+}
+
+static ssize_t mdnie_ctrl_sharpness_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	int value;
+	sscanf(buf, "%d", &value);
+	if (value >= -127 || value <= 127)
+		mdnie_ctrl_sharpness = value;
+	else
+		printk(KERN_ERR "[mDNIe] invalid blue value. -127 <= value <= 127\n");
+
+	mDNIe_Set_Mode(current_mDNIe_Mode);
+
+	return size;
+}
+
+static DEVICE_ATTR(mdnie_ctrl_sharpness, 0666, mdnie_ctrl_sharpness_show, mdnie_ctrl_sharpness_store);
+#endif /* CONFIG_TGS3_MDNIE_CTRL */
+
+
 void init_mdnie_class(void)
 {
 	mdnie_class = class_create(THIS_MODULE, "mdnie");
@@ -868,6 +1059,38 @@ void init_mdnie_class(void)
 	       dev_attr_tuning.attr.name);
 	}
 #endif
+
+#ifdef CONFIG_TGS3_MDNIE_CTRL
+	if (device_create_file
+		(tune_mdnie_dev, &dev_attr_mdnie_force_disable) < 0)
+		pr_err("Failed to create device file(%s)!=n",
+		dev_attr_mdnie_force_disable.attr.name);
+
+	if (device_create_file
+		(tune_mdnie_dev, &dev_attr_mdnie_ctrl_enable) < 0)
+		pr_err("Failed to create device file(%s)!=n",
+		dev_attr_mdnie_ctrl_enable.attr.name);
+
+	if (device_create_file
+		(tune_mdnie_dev, &dev_attr_mdnie_ctrl_red) < 0)
+		pr_err("Failed to create device file(%s)!=n",
+		dev_attr_mdnie_ctrl_red.attr.name);
+
+	if (device_create_file
+		(tune_mdnie_dev, &dev_attr_mdnie_ctrl_green) < 0)
+		pr_err("Failed to create device file(%s)!=n",
+		dev_attr_mdnie_ctrl_green.attr.name);
+
+	if (device_create_file
+		(tune_mdnie_dev, &dev_attr_mdnie_ctrl_blue) < 0)
+		pr_err("Failed to create device file(%s)!=n",
+		dev_attr_mdnie_ctrl_blue.attr.name);
+
+	if (device_create_file
+		(tune_mdnie_dev, &dev_attr_mdnie_ctrl_sharpness) < 0)
+		pr_err("Failed to create device file(%s)!=n",
+		dev_attr_mdnie_ctrl_sharpness.attr.name);
+#endif /* CONFIG_TGS3_MDNIE_CTRL */
 
 	s3c_mdnie_start();
 	sharpness_tune(0);
