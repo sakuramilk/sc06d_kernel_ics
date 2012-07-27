@@ -3392,7 +3392,7 @@ static unsigned long fmax_gfx3d_8960_v2[MAX_VDD_LEVELS] __initdata = {
 	[VDD_DIG_HIGH]    = 400000000
 };
 
-#if defined(CONFIG_GPU_OVERCLOCK) && defined(CONFIG_GPU_OVERCLOCK)
+#if defined(CONFIG_GPU_OVERCLOCK) && defined(CONFIG_MSM_USE_OVERCLOCK)
 static struct clk_freq_tbl clk_tbl_gfx3d_8960_oc[] = {
 	F_GFX3D(        0, gnd,  0,  0),
 	F_GFX3D( 27000000, pxo,  0,  0),
@@ -5895,7 +5895,7 @@ static void __init msm8960_clock_init(void)
 		memcpy(msm_clocks_8960, msm_clocks_8960_v1,
 				sizeof(msm_clocks_8960_v1));
 		if (SOCINFO_VERSION_MAJOR(socinfo_get_version()) >= 2) {
-#ifdef CONFIG_GPU_OVERCLOCK
+#if defined(CONFIG_GPU_OVERCLOCK) && defined(CONFIG_MSM_USE_OVERCLOCK)
 			gfx3d_clk.freq_tbl = clk_tbl_gfx3d_8960_oc;
 
 			memcpy(gfx3d_clk.c.fmax, fmax_gfx3d_8960_oc,
