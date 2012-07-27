@@ -27,7 +27,7 @@ fi
 
 # create release dir＿
 RELEASE_DIR=../release/`date +%Y%m%d`
-if [ ! -d $RELEASE_DIR ];
+if [ ! -d $RELEASE_DIR ]; then
   mkdir -p $RELEASE_DIR
 fi
 
