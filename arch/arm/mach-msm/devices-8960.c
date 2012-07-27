@@ -2539,7 +2539,7 @@ static struct msm_bus_vectors grp3d_nominal_low_vectors[] = {
 	},
 };
 
-#if defined(CONFIG_GPU_OVERCLOCK) && defined(CONFIG_GPU_OVERCLOCK)
+#if defined(CONFIG_GPU_OVERCLOCK) && defined(CONFIG_MSM_USE_OVERCLOCK)
 static struct msm_bus_vectors grp3d_nominal_high_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_GRAPHICS_3D,
@@ -2720,7 +2720,7 @@ static struct resource kgsl_3d0_resources[] = {
 
 static struct kgsl_device_platform_data kgsl_3d0_pdata = {
 	.pwrlevel = {
-#if defined(CONFIG_GPU_OVERCLOCK) && defined(CONFIG_GPU_OVERCLOCK)
+#if defined(CONFIG_GPU_OVERCLOCK) && defined(CONFIG_MSM_USE_OVERCLOCK)
 		{
 			.gpu_freq = 480000000,
 			.bus_freq = 4,
