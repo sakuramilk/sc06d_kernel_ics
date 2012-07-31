@@ -108,8 +108,9 @@ echo ""
 echo "=====> CREATE RELEASE IMAGE"
 # clean release dir
 if [ `find $BIN_DIR -type f | wc -l` -gt 0 ]; then
-  rm $BIN_DIR/*
+  rm -rf $BIN_DIR/*
 fi
+mkdir -p $BIN_DIR
 
 # copy zImage
 cp $OBJ_DIR/arch/arm/boot/zImage $BIN_DIR/kernel
