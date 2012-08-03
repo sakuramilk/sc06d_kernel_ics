@@ -65,7 +65,7 @@ static struct kmem_cache *genlock_lock_cachep;
  * released while another process tries to attach it
  */
 
-static DEFINE_SPINLOCK(genlock_file_lock);
+static DEFINE_SPINLOCK(genlock_ref_lock);
 
 static void genlock_destroy(struct kref *kref)
 {
@@ -225,21 +225,21 @@ struct genlock *genlock_attach_lock(struct genlock_handle *handle, int fd)
 	 * released and then attached
 	 */
 
-	spin_lock(&genlock_file_lock);
+	spin_lock(&genlock_ref_lock);
 	lock = file->private_data;
 
 	fput(file);
 
 	if (lock == NULL) {
+		spin_unlock(&genlock_ref_lock);
 		GENLOCK_LOG_ERR("File descriptor is invalid\n");
-		spin_unlock(&genlock_file_lock);
 		return ERR_PTR(-EINVAL);
 	}
 	
 	handle->lock = lock;
 	
 	kref_get(&lock->refcount);
-	spin_unlock(&genlock_file_lock);
+	spin_unlock(&genlock_ref_lock);
 
 	return lock;
 }
@@ -292,12 +292,12 @@ static int _genlock_unlock(struct genlock *lock, struct genlock_handle *handle)
 	}
 	/* If the handle holds no more references to the lock then
 	   release it (maybe) */
-	
+
 	if (--handle->active == 0) {
 		list_del(&handle->entry);
 		_genlock_signal(lock);
 	}
-	
+
 	ret = 0;
 
 done:
@@ -340,9 +340,7 @@ static int _genlock_lock(struct genlock *lock, struct genlock_handle *handle,
 		 */
 
 		if (lock->state == _RDLOCK && op == _RDLOCK) {
-			
 			handle->active++;
-			
 			goto done;
 		}
 
@@ -373,7 +371,6 @@ static int _genlock_lock(struct genlock *lock, struct genlock_handle *handle,
 		 * Check to ensure the caller has not attempted to convert a
 		 * write to a read without holding the lock.
 		 */
-
 
 		if (flags & GENLOCK_WRITE_TO_READ) {
 			GENLOCK_LOG_ERR("Handle must have lock to convert"
@@ -432,11 +429,10 @@ static int _genlock_lock(struct genlock *lock, struct genlock_handle *handle,
 
 dolock:
 	/* We can now get the lock, add ourselves to the list of owners */
-	
+
 	list_add_tail(&handle->entry, &lock->active);
 	lock->state = op;
 	handle->active++;
-	
 
 done:
 	spin_unlock_irqrestore(&lock->lock, irqflags);
@@ -467,25 +463,25 @@ int genlock_lock(struct genlock_handle *handle, int op, int flags,
 		return -EINVAL;
 	}
 
-	spin_lock(&genlock_file_lock);
+	spin_lock(&genlock_ref_lock);
 	lock = handle->lock;
 
 	if (lock == NULL) {
 		GENLOCK_LOG_ERR("Handle does not have a lock attached\n");
-		spin_unlock(&genlock_file_lock);
+		spin_unlock(&genlock_ref_lock);
 		return -EINVAL;
 	}
 	
 	if (lock->alloc_magic != GENLOCK_ALLOC_MAGIC) {
 		GENLOCK_LOG_ERR("Lock already freed!\n");
-		spin_unlock(&genlock_file_lock);
+		spin_unlock(&genlock_ref_lock);
 		dump_stack();
 		return -EINVAL;
 	}
 
 	kref_get(&lock->refcount);
 	atomic_inc(&lock->active_users);
-	spin_unlock(&genlock_file_lock);
+	spin_unlock(&genlock_ref_lock);
 	switch (op) {
 	case GENLOCK_UNLOCK:
 		ret = _genlock_unlock(lock, handle);
@@ -507,12 +503,12 @@ int genlock_lock(struct genlock_handle *handle, int op, int flags,
 		break;
 	}
 	
-	spin_lock(&genlock_file_lock);
+	spin_lock(&genlock_ref_lock);
 	if (lock->alloc_magic == GENLOCK_ALLOC_MAGIC) {
 		atomic_dec(&lock->active_users);
 		kref_put(&lock->refcount, genlock_destroy);
 	}
-	spin_unlock(&genlock_file_lock);
+	spin_unlock(&genlock_ref_lock);
 	
 	return ret;
 }
@@ -582,25 +578,25 @@ int genlock_wait(struct genlock_handle *handle, uint32_t timeout)
 		GENLOCK_LOG_ERR("Invalid handle\n");
 		return -EINVAL;
 	}
-	spin_lock(&genlock_file_lock);
+	spin_lock(&genlock_ref_lock);
 	lock = handle->lock;
 
 	if (lock == NULL) {
 		GENLOCK_LOG_ERR("Handle does not have a lock attached\n");
-		spin_unlock(&genlock_file_lock);
+		spin_unlock(&genlock_ref_lock);
 		return -EINVAL;
 	}
 
 	if (lock->alloc_magic != GENLOCK_ALLOC_MAGIC) {
 		GENLOCK_LOG_ERR("Lock already freed!\n");
-		spin_unlock(&genlock_file_lock);
+		spin_unlock(&genlock_ref_lock);
 		dump_stack();
 		return -EINVAL;
 	}
 	
 	kref_get(&lock->refcount);
 	atomic_inc(&lock->active_users);
-	spin_unlock(&genlock_file_lock);
+	spin_unlock(&genlock_ref_lock);
 	spin_lock_irqsave(&lock->lock, irqflags);
 
 	/*
@@ -633,12 +629,12 @@ int genlock_wait(struct genlock_handle *handle, uint32_t timeout)
 
 done:
 	spin_unlock_irqrestore(&lock->lock, irqflags);
-	spin_lock(&genlock_file_lock);
+	spin_lock(&genlock_ref_lock);
 	if (lock->alloc_magic == GENLOCK_ALLOC_MAGIC) {
 		atomic_dec(&lock->active_users);
 		kref_put(&lock->refcount, genlock_destroy);
 	}
-	spin_unlock(&genlock_file_lock);
+	spin_unlock(&genlock_ref_lock);
 	return ret;
 }
 
@@ -649,15 +645,15 @@ static void genlock_release_lock(struct genlock_handle *handle)
 	if (handle == NULL || handle->lock == NULL)
 		return;
 	
-	spin_lock(&genlock_file_lock);
+	spin_lock(&genlock_ref_lock);
 	if (handle->lock->alloc_magic != GENLOCK_ALLOC_MAGIC) {
-		spin_unlock(&genlock_file_lock);
+		spin_unlock(&genlock_ref_lock);
 		GENLOCK_LOG_ERR("Lock already freed!\n");
 		dump_stack();
 		return;
 	}
 	atomic_inc(&handle->lock->active_users);
-	spin_unlock(&genlock_file_lock);
+	spin_unlock(&genlock_ref_lock);
 	
 	spin_lock_irqsave(&handle->lock->lock, flags);
 	
@@ -670,12 +666,12 @@ static void genlock_release_lock(struct genlock_handle *handle)
 	
 	spin_unlock_irqrestore(&handle->lock->lock, flags);
 
-	spin_lock(&genlock_file_lock);
+	spin_lock(&genlock_ref_lock);
 	atomic_dec(&handle->lock->active_users);
 	kref_put(&handle->lock->refcount, genlock_destroy);
 	handle->lock = NULL; 
 	handle->active = 0;
-	spin_unlock(&genlock_file_lock);
+	spin_unlock(&genlock_ref_lock);
 }
 
 /*
@@ -691,9 +687,9 @@ static int genlock_handle_release(struct inode *inodep, struct file *file)
 		kmem_cache_free(genlock_handle_cachep, handle);
 	else
 		kfree(handle);
-	spin_lock(&genlock_file_lock);
+	spin_lock(&genlock_ref_lock);
 	file->private_data = NULL; 
-	spin_unlock(&genlock_file_lock);
+	spin_unlock(&genlock_ref_lock);
 	return 0;
 }
 
@@ -747,11 +743,11 @@ EXPORT_SYMBOL(genlock_get_handle);
 void genlock_put_handle(struct genlock_handle *handle)
 {
 	if (handle) {
-		spin_lock(&genlock_file_lock);
+		spin_lock(&genlock_ref_lock);
 		if (handle->lock 
 			&& handle->lock->alloc_magic == GENLOCK_ALLOC_MAGIC)
 			kref_put(&handle->lock->refcount, genlock_destroy);
-		spin_unlock(&genlock_file_lock);
+		spin_unlock(&genlock_ref_lock);
 		fput(handle->file);
 	}
 }
@@ -770,12 +766,12 @@ struct genlock_handle *genlock_get_handle_fd(int fd)
 	if (file == NULL)
 		return ERR_PTR(-EINVAL);
 	
-	spin_lock(&genlock_file_lock);
+	spin_lock(&genlock_ref_lock);
 	handle = file->private_data;
 	if (handle && handle->lock 
 		&& handle->lock->alloc_magic == GENLOCK_ALLOC_MAGIC)
 		kref_get(&handle->lock->refcount);
-	spin_unlock(&genlock_file_lock);
+	spin_unlock(&genlock_ref_lock);
 
 	return file->private_data;
 }
@@ -796,9 +792,7 @@ static long genlock_dev_ioctl(struct file *filep, unsigned int cmd,
 
 	switch (cmd) {
 	case GENLOCK_IOC_NEW: {
-		
 		lock = genlock_create_lock(handle);
-		
 		if (IS_ERR(lock))
 			return PTR_ERR(lock);
 
