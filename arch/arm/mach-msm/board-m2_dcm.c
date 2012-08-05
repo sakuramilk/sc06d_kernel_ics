@@ -1241,6 +1241,7 @@ static void fsa9485_usb_cb(bool attached)
 	if (system_rev >= 0x01) {
 		if (attached) {
 			pr_info("%s set vbus state\n", __func__);
+
 			msm_otg_set_vbus_state(attached);
 		}
 	}

@@ -2656,17 +2656,6 @@ static int s5c73m3_get_phone_fw_version(void)
 			S5C73M3_FW_REQUEST_SECOND_PATH,
 			s5c73m3_ctrl->sensor_fw[1]);
 	} else {
-#if defined(CONFIG_MACH_M2_DCM)
-		CAM_DBG_M("firmware for JPN\n");
-		sprintf(fw_path, "%sSlimISP_%c%c_JPN.bin",
-			S5C73M3_FW_REQUEST_PATH,
-			s5c73m3_ctrl->sensor_fw[0],
-			s5c73m3_ctrl->sensor_fw[1]);
-		sprintf(fw_path_in_data, "%sSlimISP_%c%c_JPN.bin",
-			S5C73M3_FW_REQUEST_SECOND_PATH,
-			s5c73m3_ctrl->sensor_fw[0],
-			s5c73m3_ctrl->sensor_fw[1]);
-#else
 		sprintf(fw_path, "%sSlimISP_%c%c.bin",
 			S5C73M3_FW_REQUEST_PATH,
 			s5c73m3_ctrl->sensor_fw[0],
@@ -2675,7 +2664,6 @@ static int s5c73m3_get_phone_fw_version(void)
 			S5C73M3_FW_REQUEST_SECOND_PATH,
 			s5c73m3_ctrl->sensor_fw[0],
 			s5c73m3_ctrl->sensor_fw[1]);
-#endif
 	}
 
 	retVal = s5c73m3_open_firmware_file(S5C73M3_FW_PATH,
