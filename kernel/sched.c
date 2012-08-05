@@ -1204,16 +1204,6 @@ static void resched_cpu(int cpu)
 	raw_spin_unlock_irqrestore(&rq->lock, flags);
 }
 
-void force_cpu_resched(int cpu)
-{
-       struct rq *rq = cpu_rq(cpu);
-       unsigned long flags;
-
-       raw_spin_lock_irqsave(&rq->lock, flags);
-       resched_task(cpu_curr(cpu));
-       raw_spin_unlock_irqrestore(&rq->lock, flags);
-}
-
 #ifdef CONFIG_NO_HZ
 /*
  * In the semi idle case, use the nearest busy cpu for migrating timers
@@ -1324,11 +1314,6 @@ static void sched_rt_avg_update(struct rq *rq, u64 rt_delta)
 
 static void sched_avg_update(struct rq *rq)
 {
-}
-
-void force_cpu_resched(int cpu)
-{
-       set_need_resched();
 }
 #endif /* CONFIG_SMP */
 
@@ -1778,7 +1763,6 @@ static void double_rq_unlock(struct rq *rq1, struct rq *rq2)
 static void calc_load_account_idle(struct rq *this_rq);
 static void update_sysctl(void);
 static int get_update_sysctl_factor(void);
-static void update_cpu_load(struct rq *this_rq);
 
 static inline void __set_task_cpu(struct task_struct *p, unsigned int cpu)
 {
@@ -2920,24 +2904,6 @@ void sched_fork(struct task_struct *p)
 	put_cpu();
 }
 
-#ifdef CONFIG_PREEMPT_COUNT_CPU
-
-/*
- * Fetch the preempt count of some cpu's current task.  Must be called
- * with interrupts blocked.  Stale return value.
- *
- * No locking needed as this always wins the race with context-switch-out
- * + task destruction, since that is so heavyweight.  The smp_rmb() is
- * to protect the pointers in that race, not the data being pointed to
- * (which, being guaranteed stale, can stand a bit of fuzziness).
- */
-int preempt_count_cpu(int cpu)
-{
-       smp_rmb(); /* stop data prefetch until program ctr gets here */
-       return task_thread_info(cpu_curr(cpu))->preempt_count;
-}
-#endif
-
 /*
  * wake_up_new_task - wake up a newly created task for the first time.
  *
@@ -3620,21 +3586,12 @@ decay_load_missed(unsigned long load, unsigned long missed_updates, int idx)
  * scheduler tick (TICK_NSEC). With tickless idle this will not be called
  * every tick. We fix it up based on jiffies.
  */
-static void update_cpu_load(struct rq *this_rq)
+static void __update_cpu_load(struct rq *this_rq, unsigned long this_load,
+			      unsigned long pending_updates)
 {
-	unsigned long this_load = this_rq->load.weight;
-	unsigned long curr_jiffies = jiffies;
-	unsigned long pending_updates;
 	int i, scale;
 
 	this_rq->nr_load_updates++;
-
-	/* Avoid repeated calls on same jiffy, when moving in and out of idle */
-	if (curr_jiffies == this_rq->last_load_update_tick)
-		return;
-
-	pending_updates = curr_jiffies - this_rq->last_load_update_tick;
-	this_rq->last_load_update_tick = curr_jiffies;
 
 	/* Update our load: */
 	this_rq->cpu_load[0] = this_load; /* Fasttrack for idx 0 */
@@ -3660,9 +3617,45 @@ static void update_cpu_load(struct rq *this_rq)
 	sched_avg_update(this_rq);
 }
 
+/*
+ * Called from nohz_idle_balance() to update the load ratings before doing the
+ * idle balance.
+ */
+void update_idle_cpu_load(struct rq *this_rq)
+{
+	unsigned long curr_jiffies = jiffies;
+	unsigned long load = this_rq->load.weight;
+	unsigned long pending_updates;
+
+	/*
+	 * Bloody broken means of dealing with nohz, but better than nothing..
+	 * jiffies is updated by one cpu, another cpu can drift wrt the jiffy
+	 * update and see 0 difference the one time and 2 the next, even though
+	 * we ticked at roughtly the same rate.
+	 *
+	 * Hence we only use this from nohz_idle_balance() and skip this
+	 * nonsense when called from the scheduler_tick() since that's
+	 * guaranteed a stable rate.
+	 */
+	if (load || curr_jiffies == this_rq->last_load_update_tick)
+		return;
+
+	pending_updates = curr_jiffies - this_rq->last_load_update_tick;
+	this_rq->last_load_update_tick = curr_jiffies;
+
+	__update_cpu_load(this_rq, load, pending_updates);
+}
+
+/*
+ * Called from scheduler_tick()
+ */
 static void update_cpu_load_active(struct rq *this_rq)
 {
-	update_cpu_load(this_rq);
+	/*
+	 * See the mess in update_idle_cpu_load().
+	 */
+	this_rq->last_load_update_tick = jiffies;
+	__update_cpu_load(this_rq, this_rq->load.weight, 1);
 
 	calc_load_account_active(this_rq);
 }
@@ -4146,7 +4139,7 @@ void __kprobes add_preempt_count(int val)
 	if (DEBUG_LOCKS_WARN_ON((preempt_count() < 0)))
 		return;
 #endif
-	__add_preempt_count(val);
+	preempt_count() += val;
 #ifdef CONFIG_DEBUG_PREEMPT
 	/*
 	 * Spinlock count overflowing soon?
@@ -4177,7 +4170,7 @@ void __kprobes sub_preempt_count(int val)
 
 	if (preempt_count() == val)
 		trace_preempt_on(CALLER_ADDR0, get_parent_ip(CALLER_ADDR1));
-	__sub_preempt_count(val);
+	preempt_count() -= val;
 }
 EXPORT_SYMBOL(sub_preempt_count);
 
@@ -4312,9 +4305,6 @@ need_resched:
 	if (likely(prev != next)) {
 		rq->nr_switches++;
 		rq->curr = next;
-#ifdef CONFIG_PREEMPT_COUNT_CPU
-		smp_wmb();
-#endif
 		++*switch_count;
 
 		context_switch(rq, prev, next); /* unlocks the rq */
@@ -7452,16 +7442,26 @@ static void __sdt_free(const struct cpumask *cpu_map)
 		struct sd_data *sdd = &tl->data;
 
 		for_each_cpu(j, cpu_map) {
-			struct sched_domain *sd = *per_cpu_ptr(sdd->sd, j);
-			if (sd && (sd->flags & SD_OVERLAP))
-				free_sched_groups(sd->groups, 0);
-			kfree(*per_cpu_ptr(sdd->sd, j));
-			kfree(*per_cpu_ptr(sdd->sg, j));
-			kfree(*per_cpu_ptr(sdd->sgp, j));
+			struct sched_domain *sd;
+
+			if (sdd->sd) {
+				sd = *per_cpu_ptr(sdd->sd, j);
+				if (sd && (sd->flags & SD_OVERLAP))
+					free_sched_groups(sd->groups, 0);
+				kfree(*per_cpu_ptr(sdd->sd, j));
+			}
+
+			if (sdd->sg)
+				kfree(*per_cpu_ptr(sdd->sg, j));
+			if (sdd->sgp)
+				kfree(*per_cpu_ptr(sdd->sgp, j));
 		}
 		free_percpu(sdd->sd);
+		sdd->sd = NULL;
 		free_percpu(sdd->sg);
+		sdd->sg = NULL;
 		free_percpu(sdd->sgp);
+		sdd->sgp = NULL;
 	}
 }
 
@@ -8390,9 +8390,6 @@ struct task_struct *curr_task(int cpu)
 void set_curr_task(int cpu, struct task_struct *p)
 {
 	cpu_curr(cpu) = p;
-#ifdef CONFIG_PREEMPT_COUNT_CPU
-	smp_wmb();
-#endif
 }
 
 #endif

@@ -881,10 +881,10 @@ int __init sec_debug_init(void)
 
 	pr_emerg("%s: enable=%d\n", __func__, enable);
 
-	restart_reason = ioremap_nocache((unsigned long)restart_reason, SZ_4K);
+	//restart_reason = ioremap_nocache((unsigned long)restart_reason, SZ_4K);
 	/* check restart_reason here */
-	pr_emerg("%s: restart_reason : 0x%x\n", __func__,
-		(unsigned int)restart_reason);
+	//pr_emerg("%s: restart_reason : 0x%x\n", __func__,
+	//	(unsigned int)restart_reason);
 
 	register_reboot_notifier(&nb_reboot_block);
 	atomic_notifier_chain_register(&panic_notifier_list, &nb_panic_block);
