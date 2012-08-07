@@ -461,6 +461,9 @@ static ssize_t store_##file_name					\
 }
 
 #ifdef CONFIG_SEC_DVFS
+static unsigned int oc_scaling_max_freq = MAX_FREQ_LIMIT;
+static unsigned int uc_scaling_min_freq = MIN_FREQ_LIMIT;
+
 static ssize_t store_scaling_min_freq
 (struct cpufreq_policy *policy, const char *buf, size_t count)
 {
@@ -471,10 +474,15 @@ static ssize_t store_scaling_min_freq
 	if (ret != 1)
 		return -EINVAL;
 
+	if (value < uc_scaling_min_freq)
+		uc_scaling_min_freq = value;
+	if (uc_scaling_min_freq < MIN_FREQ_LIMIT_UC)
+		uc_scaling_min_freq = MIN_FREQ_LIMIT_UC;
+
 	if (policy->cpu == BOOT_CPU) {
-		if (value <= MIN_FREQ_LIMIT)
+		if (value <= MIN_FREQ_LIMIT_UC)
 			cpufreq_set_limit_defered(USER_MIN_STOP, value);
-		else if (value <= MAX_FREQ_LIMIT)
+		else if (value <= MAX_FREQ_LIMIT_OC)
 			cpufreq_set_limit_defered(USER_MIN_START, value);
 	}
 
@@ -491,10 +499,15 @@ static ssize_t store_scaling_max_freq
 	if (ret != 1)
 		return -EINVAL;
 
+	if (value > oc_scaling_max_freq)
+		oc_scaling_max_freq = value;
+	if (oc_scaling_max_freq > MAX_FREQ_LIMIT_OC)
+		oc_scaling_max_freq = MAX_FREQ_LIMIT_OC;
+
 	if (policy->cpu == BOOT_CPU) {
-		if (value >= MAX_FREQ_LIMIT)
+		if (value >= MAX_FREQ_LIMIT_OC)
 			cpufreq_set_limit_defered(USER_MAX_STOP, value);
-		else if (value >= MIN_FREQ_LIMIT)
+		else if (value >= MIN_FREQ_LIMIT_UC)
 			cpufreq_set_limit_defered(USER_MAX_START, value);
 	}
 
@@ -2081,11 +2094,11 @@ int cpufreq_set_limit(unsigned int flag, unsigned int value)
 	else if (flag == USER_MAX_START)
 		user_max_freq_limit = value;
 	else if (flag == USER_MAX_STOP)
-		user_max_freq_limit = MAX_FREQ_LIMIT;
+		user_max_freq_limit = oc_scaling_max_freq;
 	else if (flag == USER_MIN_START)
 		user_min_freq_limit = value;
 	else if (flag == USER_MIN_STOP)
-		user_min_freq_limit = MIN_FREQ_LIMIT;
+		user_min_freq_limit = uc_scaling_min_freq;
 
 	/*  set/clear bits */
 	if (flag%10 == 0)
@@ -2100,7 +2113,7 @@ int cpufreq_set_limit(unsigned int flag, unsigned int value)
 	if (freq_limit_start_flag & UNI_PRO_BIT)
 		max_value = LOW_MAX_FREQ_LIMIT;
 	else
-		max_value = MAX_FREQ_LIMIT;
+		max_value = user_max_freq_limit;
 
 	/* cpufreq_max_limit */
 	if (freq_limit_start_flag & APPS_MAX_BIT) {
@@ -2122,7 +2135,7 @@ int cpufreq_set_limit(unsigned int flag, unsigned int value)
 	else if (freq_limit_start_flag & TOUCH_BOOSTER_BIT)
 		min_value = TOUCH_BOOSTER_FREQ_LIMIT;
 	else
-		min_value = MIN_FREQ_LIMIT;
+		min_value = user_min_freq_limit;
 
 	/* cpufreq_min_limit */
 	if (freq_limit_start_flag & APPS_MIN_BIT) {
